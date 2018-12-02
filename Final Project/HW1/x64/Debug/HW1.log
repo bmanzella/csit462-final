@@ -1,5 +1,2 @@
 ﻿  HW1.cpp
-c:\users\bmanz\onedrive - fredonia.edu\csit462\final project\hw1\hw1\hw1.cpp(95): warning C4244: 'argument': conversion from 'double' to 'GLsizei', possible loss of data
-c:\users\bmanz\onedrive - fredonia.edu\csit462\final project\hw1\hw1\hw1.cpp(97): warning C4244: 'argument': conversion from 'double' to 'GLsizei', possible loss of data
-  HW1.vcxproj -> C:\Users\bmanz\OneDrive - fredonia.edu\CSIT462\Final Project\HW1\x64\Debug\HW1.exe
-  HW1.vcxproj -> C:\Users\bmanz\OneDrive - fredonia.edu\CSIT462\Final Project\HW1\x64\Debug\HW1.pdb (Partial PDB)
+d:\code\csit462-final\final project\hw1\hw1.cpp(6): fatal error C1083: Cannot open include file: 'GL/glut.h': No such file or directory
