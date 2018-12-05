@@ -1,16 +1,56 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
+#include <GL/gl.h>
+#include <GL/glu.h>
 #include <GL/glut.h>
+#include <GL/glui.h>
+#include <string>
+#include <math.h>
+using namespace std;
+#ifndef _WIN32
+#include <unistd.h>
+#else
+void usleep(unsigned int nanosec)
+{
+	Sleep(nanosec / 1000);
+}
+#endif
 
-const int WINDOW_WIDTH = 700;
-const int WINDOW_HEIGHT = 500;
+int WINDOW_WIDTH = 400;
+int WINDOW_HEIGHT = 400;
 float rotateLeftArm = 0.0f;
 float rotateRightArm = 0.0f;
 float rotateHead = 0.0f;
-float xRotate = 0;
-float yRotate = 0;
-float zRotate = 0;
+const float PI = 3.14159;
+
+float joint_rotLARM = 0.0f;
+float joint_rotRARM = 0.0f;
+float joint_rotLLEG = 0.0f;
+float joint_rotRLEG = 0.0f;
+
+
+// Window settings
+int windowID;               // Glut window ID (for display)
+GLUI *glui;                 // Glui window (for controls)
+int Win[2];                 // window (x,y) size
+
+
+// Animation settings
+int animate_mode = 0;       // 0 = no anim, 1 = animate
+int animation_frame = 0;      // Specify current frame of animation
+
+// Joint parameters
+const float JOINT_MIN = 0.0f;
+const float JOINT_MAX = 360.0f;
+float joint_rot = 0.0f;
+float joint_x = 0;
+float joint_y = 0;
+
+
 
 enum {
 	BRASS, RED_PLASTIC, EMERALD, SLATE
@@ -50,6 +90,46 @@ int shade_model = GL_SMOOTH;
 char *left_light, *right_light;
 char *ico_material, *teapot_material, *torus_material;
 
+void animate()
+{
+	// Update geometry
+	const double joint_rot_speed = 10;
+	double joint_rot_t = double(int(animation_frame*joint_rot_speed) % int(JOINT_MAX)) / JOINT_MAX;
+	joint_rot = joint_rot_t * JOINT_MIN + (1 - joint_rot_t) * JOINT_MAX;
+
+	glui->sync_live();
+
+
+	glutSetWindow(windowID);
+	glutPostRedisplay();
+
+	animation_frame++;
+	usleep(50000);
+}
+
+void quitButton(int)
+{
+	exit(0);
+}
+void initGl(void)
+{
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+}
+void animateButton(int)
+{
+	// synchronize variables that GLUT uses
+	glui->sync_live();
+
+	animation_frame = 0;
+	if (animate_mode == 1) {
+		// start animation
+		GLUI_Master.set_glutIdleFunc(animate);
+	}
+	else {
+		// stop animation
+		GLUI_Master.set_glutIdleFunc(NULL);
+	}
+}
 
 void leftArm()
 {
@@ -107,8 +187,7 @@ void head()
 	glPopMatrix();
 }
 
-void
-output(GLfloat x, GLfloat y, char *format, ...)
+void output(GLfloat x, GLfloat y, char *format, ...)
 {
 	va_list args;
 	char buffer[200], *p;
@@ -123,8 +202,7 @@ output(GLfloat x, GLfloat y, char *format, ...)
 	glPopMatrix();
 }
 
-void
-display(void)
+void display(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
@@ -166,8 +244,7 @@ display(void)
 	glutSwapBuffers();
 }
 
-void
-light_select(GLenum which, int value, char **label)
+void light_select(GLenum which, int value, char **label)
 {
 	glEnable(which);
 	switch (value) {
@@ -191,20 +268,17 @@ light_select(GLenum which, int value, char **label)
 	glutPostRedisplay();
 }
 
-void
-left_light_select(int value)
+void left_light_select(int value)
 {
 	light_select(GL_LIGHT0, value, &left_light);
 }
 
-void
-right_light_select(int value)
+void right_light_select(int value)
 {
 	light_select(GL_LIGHT1, value, &right_light);
 }
 
-void
-material(int dlist, GLfloat * ambient, GLfloat * diffuse,
+void material(int dlist, GLfloat * ambient, GLfloat * diffuse,
 	GLfloat * specular, GLfloat shininess)
 {
 	glNewList(dlist, GL_COMPILE);
@@ -215,8 +289,7 @@ material(int dlist, GLfloat * ambient, GLfloat * diffuse,
 	glEndList();
 }
 
-char *
-material_select(int object, int value)
+char * material_select(int object, int value)
 {
 	glutPostRedisplay();
 	switch (value) {
@@ -240,8 +313,7 @@ material_select(int object, int value)
 	return NULL; /* avoid bogus warning! */
 }
 
-void
-main_menu_select(int value)
+void main_menu_select(int value)
 {
 	if (value == 666)
 		exit(0);
@@ -257,18 +329,19 @@ void resize(int x, int y)
 	else
 		glViewport(0, 0, y*aspect, y);
 }
-int
-main(int argc, char **argv)
+void initGlut()
 {
-	int left_light_m, right_light_m, torus_m, teapot_m, ico_m;
 
-	glutInitWindowSize(400, 400);
-	glutInit(&argc, argv);
+	Win[0] = 400;
+	Win[1] = 400;
+	// Set video mode: double-buffered, color, depth-buffered
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-	glutCreateWindow("CSIT462 Computer Graphics Final Project");
+	glutCreateWindow("CSIT462 Computer Graphics Final");
+	glutInitWindowPosition(0, 0);
+	glutInitWindowSize(400, 400);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutDisplayFunc(display);
 	glutReshapeFunc(resize);
-
 	glLightfv(GL_LIGHT0, GL_POSITION, left_light_position);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, white_light);
 	glLightfv(GL_LIGHT1, GL_POSITION, right_light_position);
@@ -278,7 +351,6 @@ main(int argc, char **argv)
 	glEnable(GL_LIGHTING);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_NORMALIZE);
-	glLineWidth(1.0);
 	glMatrixMode(GL_PROJECTION);
 	gluPerspective( /* degrees field of view */ 50.0,
 		/* aspect ratio */ 1.0, /* Z near */ 1.0, /* Z far */ 10.0);
@@ -287,7 +359,56 @@ main(int argc, char **argv)
 		0.0, 0.0, 0.0,      /* center is at (0,0,0) */
 		0.0, 1.0, 0.);      /* up is in positive Y direction */
 	glTranslatef(0.0, 0.0, -1.0);
+}
+void initGlui()
+{
+	GLUI_Master.set_glutIdleFunc(NULL);
 
+	glutSetWindow(windowID);
+	// Create GLUI window
+	glui = GLUI_Master.create_glui("Glui Window", 0, Win[0] + 10, 0);
+
+	// Create a control to specify the rotation of the joint
+	GLUI_Spinner *joint_spinner
+		= glui->add_spinner("Left Arm", GLUI_SPINNER_FLOAT, &joint_rotLARM);
+	joint_spinner->set_speed(0.1);
+	joint_spinner->set_float_limits(JOINT_MIN, JOINT_MAX, GLUI_LIMIT_CLAMP);
+
+	GLUI_Spinner *joint_spinnerR
+		= glui->add_spinner("Right Arm", GLUI_SPINNER_FLOAT, &joint_rotRARM);
+	joint_spinnerR->set_speed(0.1);
+	joint_spinnerR->set_float_limits(JOINT_MIN, JOINT_MAX, GLUI_LIMIT_CLAMP);
+
+	GLUI_Spinner *joint_spinnerE
+		= glui->add_spinner("Left Leg", GLUI_SPINNER_FLOAT, &joint_rotLLEG);
+	joint_spinnerE->set_speed(0.1);
+	joint_spinnerE->set_float_limits(JOINT_MIN, JOINT_MAX, GLUI_LIMIT_CLAMP);
+
+	GLUI_Spinner *joint_spinnerD
+		= glui->add_spinner("Right Leg", GLUI_SPINNER_FLOAT, &joint_rotRLEG);
+	joint_spinnerD->set_speed(0.1);
+	joint_spinnerD->set_float_limits(JOINT_MIN, JOINT_MAX, GLUI_LIMIT_CLAMP);
+
+	// Add button to specify animation mode
+	glui->add_separator();
+	glui->add_checkbox("Animate", &animate_mode, 0, animateButton);
+
+	// Add "Quit" button
+	glui->add_separator();
+	glui->add_button("Quit", 0, quitButton);
+
+	// Set the main window to be the "active" window
+	glui->set_main_gfx_window(windowID);
+}
+int main(int argc, char **argv)
+{
+	int left_light_m, right_light_m, torus_m, teapot_m, ico_m;
+
+	glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+	glutInit(&argc, argv);
+	initGlut();
+	initGlui();
+	initGl();
 	glutMainLoop();
-	return 0;             /* ANSI C requires main to return int. */
+	return 0;
 }
