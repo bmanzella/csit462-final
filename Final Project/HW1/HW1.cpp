@@ -100,7 +100,7 @@ void animate()
 	glui->sync_live();
 
 
-	glutSetWindow(windowID);
+	//glutSetWindow(windowID);
 	glutPostRedisplay();
 
 	animation_frame++;
@@ -329,19 +329,10 @@ void resize(int x, int y)
 	else
 		glViewport(0, 0, y*aspect, y);
 }
-void initGlut()
+void initGlut(char* winName)
 {
-
-	Win[0] = 400;
-	Win[1] = 400;
 	// Set video mode: double-buffered, color, depth-buffered
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-	glutCreateWindow("CSIT462 Computer Graphics Final");
-	glutInitWindowPosition(0, 0);
-	glutInitWindowSize(400, 400);
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-	glutDisplayFunc(display);
-	glutReshapeFunc(resize);
+
 	glLightfv(GL_LIGHT0, GL_POSITION, left_light_position);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, white_light);
 	glLightfv(GL_LIGHT1, GL_POSITION, right_light_position);
@@ -402,13 +393,26 @@ void initGlui()
 }
 int main(int argc, char **argv)
 {
-	int left_light_m, right_light_m, torus_m, teapot_m, ico_m;
-
-	glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+	// Process program arguments
+	if (argc != 3) {
+		Win[0] = 400;
+		Win[1] = 400;
+	}
+	else {
+		Win[0] = atoi(argv[1]);
+		Win[1] = atoi(argv[2]);
+	}
 	glutInit(&argc, argv);
-	initGlut();
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+	windowID = glutCreateWindow("CSIT462 Computer Graphics Final");
+	glutInitWindowPosition(0, 0);
+	glutInitWindowSize(Win[0], Win[1]);
+	glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+	initGlut(argv[0]);
 	initGlui();
 	initGl();
+	glutDisplayFunc(display);
+	glutReshapeFunc(resize);
 	glutMainLoop();
 	return 0;
 }
