@@ -23,25 +23,57 @@ void usleep(unsigned int nanosec)
 
 
 // Window settings
-int WINDOW_WIDTH = 400;
-int WINDOW_HEIGHT = 400;
+int WINDOW_WIDTH = 700;
+int WINDOW_HEIGHT = 700;
 int windowID;               // Glut window ID (for display)
 GLUI *glui;                 // Glui window (for controls)
 int Win[2];                 // window (x,y) size
 
 
-// Animation settings
+							// Animation settings
 int animate_mode = 0;       // 0 = no anim, 1 = animate
 int animation_frame = 0;      // Specify current frame of animation
 
-// Joint parameters
+							  // Joint parameters
 const float JOINT_MIN = -45.0f;
 const float JOINT_MAX = 45.0f;
+const float JOINT_HEAD_MIN = -10.0f;
+const float JOINT_HEAD_MAX = 10.0f;
 float joint_rotLARM = 0.0f;
 float joint_rotRARM = 0.0f;
 float joint_rotLLEG = 0.0f;
 float joint_rotRLEG = 0.0f;
+float joint_rotHEAD = 0.0f;
 
+double eye_x = 0;
+double eye_y = 0;
+double eye_z = 10;
+
+
+void keyboard(unsigned char key, int x, int y)
+{
+	switch (key)
+	{
+	case 'a':
+		eye_x += 1;
+		break;
+	case 'z':
+		eye_x -= 1;
+		break;
+	case 's':
+		eye_y += 1;
+		break;
+	case 'x':
+		eye_y -= 1;
+		break;
+	case 'd':
+		eye_z += 1;
+		break;
+	case 'c':
+		eye_z -= 1;
+		break;
+	}
+}
 
 enum {
 	BRASS, RED_PLASTIC, EMERALD, SLATE
@@ -79,6 +111,9 @@ void animate()
 
 	double joint_rotRLEG_t = double(int(animation_frame*joint_rot_speed) % int(JOINT_MAX)) / JOINT_MAX;
 	joint_rotRLEG += joint_rotRLEG_t * JOINT_MIN + (1 - joint_rotRLEG_t) * JOINT_MAX;
+
+	double joint_rotHEAD_t = double(int(animation_frame*joint_rot_speed) % int(JOINT_HEAD_MAX)) / JOINT_HEAD_MAX;
+	joint_rotHEAD += joint_rotHEAD_t * JOINT_HEAD_MIN + (1 - joint_rotHEAD_t) * JOINT_HEAD_MAX;;
 
 	glui->sync_live();
 	glutSetWindow(windowID);
@@ -135,8 +170,8 @@ void rightArm()
 void leftLeg()
 {
 	glPushMatrix();
-	glTranslatef(-0.75f, -0.5f, 0.0f);
-	glScalef(0.5f, 0.5f, 0.5f);
+	glTranslatef(-0.75f, -1.0f, 0.0f);
+	glScalef(0.5f, 1.0f, 0.5f);
 	glutSolidCube(1.0);
 	glPopMatrix();
 }
@@ -144,8 +179,8 @@ void leftLeg()
 void rightLeg()
 {
 	glPushMatrix();
-	glTranslatef(0.75f, -0.5f, 0.0f);
-	glScalef(0.5f, 0.5f, 0.5f);
+	glTranslatef(0.75f, -1.0f, 0.0f);
+	glScalef(0.5f, 1.0f, 0.5f);
 	glutSolidCube(1.0);
 	glPopMatrix();
 }
@@ -161,8 +196,8 @@ void head()
 {
 	glPushMatrix();
 	//glRotatef(rotateHead, 0.0f, 1.0f, 0.0f);
-	glTranslatef(0.0f, 0.75f, 0.0f);
-	glScalef(1.5f, 0.5f, 1.0f);
+	glTranslatef(0.0f, 1.0f, 0.0f);
+	glScalef(1.5f, 1.0f, 1.0f);
 	glutSolidCube(1.0);
 	glScalef(1.0f, 2.0f, 1.0f);
 	glPopMatrix();
@@ -172,18 +207,20 @@ void display(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glScalef(1.3, 1.3, 1.3);
-	glRotatef(20.0, 1.0, 0.0, 0.0);
-	glPushMatrix();
-	glTranslatef(-0.65, 0.7, 0.0);
-	glRotatef(90.0, 1.0, 0.0, 0.0);
-	glPopMatrix();
-	glPushMatrix();
-	glTranslatef(-0.75, -0.8, 0.0);
-	glCallList(TEAPOT_MATERIAL);
-	head();
-	body();
+
+	//glLoadIdentity();
+	//gluLookAt(eye_x, eye_y, eye_z, 0, 0, 0, 0, 1, 0);
+
+	//glPushMatrix();
+	//glScalef(1.3, 1.3, 1.3);
+	//glRotatef(20.0, 1.0, 0.0, 0.0);
+	//glPushMatrix();
+	//glTranslatef(-0.65, 0.7, 0.0);
+	//glRotatef(90.0, 1.0, 0.0, 0.0);
+	//glPopMatrix();
+	//glPushMatrix();
+	//glTranslatef(-0.75, -0.8, 0.0);
+	//glCallList(TEAPOT_MATERIAL);
 
 	glPushMatrix();
 	glRotatef((GLfloat)joint_rotLARM, 0.0, 1.0, 0.0);
@@ -205,6 +242,15 @@ void display(void)
 	glRotatef((GLfloat)joint_rotRLEG, 1.0, 0.0, 0.0);
 	rightLeg();
 	glPopMatrix();
+
+	glPushMatrix();
+	glRotatef((GLfloat)joint_rotHEAD, 0.0, 1.0, 0.0);
+	head();
+	glPopMatrix();
+
+
+	body();
+
 
 	glPopMatrix();
 	glPushMatrix();
@@ -310,6 +356,7 @@ void initGlui()
 	// Create GLUI window
 	glui = GLUI_Master.create_glui("Glui Window", 0, Win[0] + 10, 0);
 
+
 	// Create a control to specify the rotation of the joint
 	GLUI_Spinner *joint_spinner
 		= glui->add_spinner("Left Arm", GLUI_SPINNER_FLOAT, &joint_rotLARM);
@@ -331,6 +378,11 @@ void initGlui()
 	joint_spinnerD->set_speed(0.1);
 	joint_spinnerD->set_float_limits(JOINT_MIN, JOINT_MAX, GLUI_LIMIT_CLAMP);
 
+	GLUI_Spinner *joint_spinnerH
+		= glui->add_spinner("Head", GLUI_SPINNER_FLOAT, &joint_rotHEAD);
+	joint_spinnerD->set_speed(0.1);
+	joint_spinnerD->set_float_limits(JOINT_HEAD_MIN, JOINT_HEAD_MAX, GLUI_LIMIT_CLAMP);
+
 	// Add button to specify animation mode
 	glui->add_separator();
 	glui->add_checkbox("Animate", &animate_mode, 0, animateButton);
@@ -344,10 +396,10 @@ void initGlui()
 }
 int main(int argc, char **argv)
 {
-	// Process program arguments
+	 //Process program arguments
 	if (argc != 3) {
-		Win[0] = 400;
-		Win[1] = 400;
+		Win[0] = 700;
+		Win[1] = 700;
 	}
 	else {
 		Win[0] = atoi(argv[1]);
@@ -357,13 +409,13 @@ int main(int argc, char **argv)
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	windowID = glutCreateWindow("CSIT462 Computer Graphics Final");
 	glutInitWindowPosition(0, 0);
-	glutInitWindowSize(Win[0], Win[1]);
 	glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 	initGlut(argv[0]);
 	initGlui();
 	initGl();
-	glutDisplayFunc(display);
 	glutReshapeFunc(resize);
+	glutDisplayFunc(display);
+
 	glutMainLoop();
 	return 0;
 }
